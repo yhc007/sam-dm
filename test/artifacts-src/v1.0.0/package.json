@@ -1,0 +1,7 @@
+{
+  "name": "test-nextjs-app",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "echo 'Starting v1.0.0'"
+  }
+}

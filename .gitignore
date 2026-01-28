@@ -1,0 +1,23 @@
+# Rust
+target/
+Cargo.lock
+
+# Environment
+.env
+*.env.local
+
+# Artifacts
+artifacts/
+*.tar.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Test files
+test/
