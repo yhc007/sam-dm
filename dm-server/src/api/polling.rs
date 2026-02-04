@@ -50,6 +50,14 @@ pub async fn checkin(
         _ => false,
     };
 
+    // 클라이언트 설정
+    let client_config = client.config.0.clone();
+    let config_option = if client_config.service_dir.is_some() || client_config.restart_command.is_some() {
+        Some(client_config)
+    } else {
+        None
+    };
+
     if needs_update {
         let target_version = client.target_version.unwrap();
         
@@ -74,6 +82,7 @@ pub async fn checkin(
                 target_version: Some(target_version),
                 artifact_url: Some(format!("/api/artifacts/{}", ver.version)),
                 checksum: Some(ver.checksum),
+                config: config_option,
             }));
         }
     }
@@ -83,6 +92,7 @@ pub async fn checkin(
         target_version: None,
         artifact_url: None,
         checksum: None,
+        config: config_option,
     }))
 }
 

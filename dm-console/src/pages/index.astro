@@ -1,0 +1,175 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+
+// API 설정 (환경변수 또는 기본값)
+const API_URL = import.meta.env.PUBLIC_API_URL || 'https://api.coreon.build';
+---
+
+<Layout title="Dashboard">
+  <div class="space-y-8">
+    <!-- Header -->
+    <div>
+      <h1 class="text-3xl font-bold">Dashboard</h1>
+      <p class="text-text-muted mt-1">원격 업데이트 시스템 현황</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-bg-card rounded-xl p-6 border border-border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-text-muted text-sm">총 클라이언트</p>
+            <p class="text-3xl font-bold mt-1" id="totalClients">-</p>
+          </div>
+          <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+            <Icon name="lucide:monitor" class="w-6 h-6 text-primary" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-bg-card rounded-xl p-6 border border-border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-text-muted text-sm">온라인</p>
+            <p class="text-3xl font-bold mt-1 text-success" id="onlineClients">-</p>
+          </div>
+          <div class="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
+            <Icon name="lucide:wifi" class="w-6 h-6 text-success" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-bg-card rounded-xl p-6 border border-border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-text-muted text-sm">버전 수</p>
+            <p class="text-3xl font-bold mt-1" id="totalVersions">-</p>
+          </div>
+          <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
+            <Icon name="lucide:package" class="w-6 h-6 text-warning" />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-bg-card rounded-xl p-6 border border-border">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-text-muted text-sm">대기 중 업데이트</p>
+            <p class="text-3xl font-bold mt-1 text-warning" id="pendingUpdates">-</p>
+          </div>
+          <div class="w-12 h-12 bg-danger/10 rounded-lg flex items-center justify-center">
+            <Icon name="lucide:clock" class="w-6 h-6 text-danger" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Recent Clients -->
+      <div class="bg-bg-card rounded-xl border border-border">
+        <div class="p-6 border-b border-border flex items-center justify-between">
+          <h2 class="text-xl font-semibold">최근 클라이언트</h2>
+          <a href="/clients" class="text-primary text-sm hover:underline">전체보기</a>
+        </div>
+        <div class="p-6">
+          <div id="clientList" class="space-y-4">
+            <div class="text-text-muted text-center py-4">로딩 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Versions -->
+      <div class="bg-bg-card rounded-xl border border-border">
+        <div class="p-6 border-b border-border flex items-center justify-between">
+          <h2 class="text-xl font-semibold">최근 버전</h2>
+          <a href="/versions" class="text-primary text-sm hover:underline">전체보기</a>
+        </div>
+        <div class="p-6">
+          <div id="versionList" class="space-y-4">
+            <div class="text-text-muted text-center py-4">로딩 중...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script define:vars={{ API_URL }}>
+  async function fetchDashboard() {
+    try {
+      // Fetch clients
+      const clientsRes = await fetch(`${API_URL}/api/clients`);
+      const clients = clientsRes.ok ? await clientsRes.json() : [];
+      
+      // Fetch versions
+      const versionsRes = await fetch(`${API_URL}/api/versions`);
+      const versions = versionsRes.ok ? await versionsRes.json() : [];
+      
+      // Update stats
+      document.getElementById('totalClients').textContent = clients.length;
+      document.getElementById('onlineClients').textContent = 
+        clients.filter(c => c.status === 'online').length;
+      document.getElementById('totalVersions').textContent = versions.length;
+      document.getElementById('pendingUpdates').textContent = 
+        clients.filter(c => c.pending_version).length;
+      
+      // Update client list
+      const clientListEl = document.getElementById('clientList');
+      if (clients.length === 0) {
+        clientListEl.innerHTML = '<div class="text-text-muted text-center py-4">등록된 클라이언트가 없습니다</div>';
+      } else {
+        clientListEl.innerHTML = clients.slice(0, 5).map(client => `
+          <div class="flex items-center justify-between p-3 bg-bg-hover rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class="w-2 h-2 rounded-full ${client.status === 'online' ? 'bg-success' : 'bg-secondary'}"></div>
+              <div>
+                <p class="font-medium">${client.name}</p>
+                <p class="text-xs text-text-muted">v${client.current_version || '미설치'}</p>
+              </div>
+            </div>
+            <span class="text-xs text-text-muted">${formatDate(client.last_seen)}</span>
+          </div>
+        `).join('');
+      }
+      
+      // Update version list
+      const versionListEl = document.getElementById('versionList');
+      if (versions.length === 0) {
+        versionListEl.innerHTML = '<div class="text-text-muted text-center py-4">등록된 버전이 없습니다</div>';
+      } else {
+        versionListEl.innerHTML = versions.slice(0, 5).map(version => `
+          <div class="flex items-center justify-between p-3 bg-bg-hover rounded-lg">
+            <div>
+              <p class="font-medium">v${version.version}</p>
+              <p class="text-xs text-text-muted">${version.release_notes || '릴리즈 노트 없음'}</p>
+            </div>
+            <span class="text-xs text-text-muted">${formatDate(version.created_at)}</span>
+          </div>
+        `).join('');
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard:', error);
+      document.getElementById('clientList').innerHTML = 
+        '<div class="text-danger text-center py-4">서버 연결 실패</div>';
+      document.getElementById('versionList').innerHTML = 
+        '<div class="text-danger text-center py-4">서버 연결 실패</div>';
+    }
+  }
+  
+  function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return '방금 전';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
+    return date.toLocaleDateString('ko-KR');
+  }
+  
+  fetchDashboard();
+  setInterval(fetchDashboard, 30000); // Refresh every 30s
+</script>

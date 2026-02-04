@@ -5,7 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::db::{self, RegisterClientRequest, RegisterClientResponse};
+use crate::db::{self, RegisterClientRequest, RegisterClientResponse, UpdateClientConfigRequest};
 use crate::AppState;
 
 /// API Key 생성
@@ -24,7 +24,7 @@ pub async fn register_client(
 ) -> Result<Json<RegisterClientResponse>, (StatusCode, String)> {
     let api_key = generate_api_key();
 
-    let client = db::register_client(&state.pool, &req.name, &api_key)
+    let client = db::register_client(&state.pool, &req.name, &api_key, req.config.as_ref())
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -33,6 +33,30 @@ pub async fn register_client(
         name: client.name,
         api_key,
     }))
+}
+
+/// 클라이언트 설정 업데이트
+/// PUT /api/clients/:id/config
+pub async fn update_client_config(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<UpdateClientConfigRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // 클라이언트 존재 확인
+    let _client = db::get_client_by_id(&state.pool, id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Client not found".to_string()))?;
+
+    // 설정 업데이트
+    db::update_client_config(&state.pool, id, &req.config)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({
+        "message": "Config updated",
+        "client_id": id
+    })))
 }
 
 /// 모든 클라이언트 조회

@@ -1,0 +1,56 @@
+---
+import { Icon } from 'astro-icon/components';
+
+const navItems = [
+  { href: '/', icon: 'lucide:layout-dashboard', label: 'Dashboard' },
+  { href: '/versions', icon: 'lucide:package', label: 'Versions' },
+  { href: '/clients', icon: 'lucide:monitor', label: 'Clients' },
+  { href: '/schedules', icon: 'lucide:calendar-clock', label: 'Schedules' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<aside class="fixed left-0 top-0 h-screen w-64 bg-bg-card border-r border-border flex flex-col">
+  <!-- Logo -->
+  <div class="p-6 border-b border-border">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+        <Icon name="lucide:zap" class="w-6 h-6 text-white" />
+      </div>
+      <div>
+        <h1 class="font-bold text-lg">Sam DM</h1>
+        <p class="text-xs text-text-muted">Update Console</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 p-4">
+    <ul class="space-y-2">
+      {navItems.map(item => (
+        <li>
+          <a
+            href={item.href}
+            class:list={[
+              'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+              currentPath === item.href
+                ? 'bg-primary text-white'
+                : 'text-text-muted hover:bg-bg-hover hover:text-text'
+            ]}
+          >
+            <Icon name={item.icon} class="w-5 h-5" />
+            <span>{item.label}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+
+  <!-- Footer -->
+  <div class="p-4 border-t border-border">
+    <div class="text-xs text-text-muted text-center">
+      Sam DM v0.1.0
+    </div>
+  </div>
+</aside>

@@ -3,6 +3,25 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+/// 클라이언트 설정
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ClientConfig {
+    #[serde(default)]
+    pub service_dir: Option<String>,
+    #[serde(default)]
+    pub restart_command: Option<String>,
+    #[serde(default)]
+    pub pre_update_script: Option<String>,
+    #[serde(default)]
+    pub post_update_script: Option<String>,
+    #[serde(default)]
+    pub health_check_url: Option<String>,
+    #[serde(default)]
+    pub health_check_timeout: Option<i32>,
+    #[serde(default)]
+    pub rollback_on_failure: Option<bool>,
+}
+
 /// 등록된 클라이언트 (타겟 서버)
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Client {
@@ -15,6 +34,8 @@ pub struct Client {
     pub status: String, // "online", "offline", "updating", "error"
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    #[sqlx(default)]
+    pub config: sqlx::types::Json<ClientConfig>,
 }
 
 /// 버전 정보
@@ -60,12 +81,22 @@ pub struct CheckinResponse {
     pub artifact_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checksum: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<ClientConfig>,
 }
 
 /// 새 클라이언트 등록 요청
 #[derive(Debug, Deserialize)]
 pub struct RegisterClientRequest {
     pub name: String,
+    #[serde(default)]
+    pub config: Option<ClientConfig>,
+}
+
+/// 클라이언트 설정 업데이트 요청
+#[derive(Debug, Deserialize)]
+pub struct UpdateClientConfigRequest {
+    pub config: ClientConfig,
 }
 
 /// 새 클라이언트 등록 응답

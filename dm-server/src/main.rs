@@ -3,7 +3,7 @@ mod config;
 mod db;
 
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use sqlx::PgPool;
@@ -61,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
         // 관리 API
         .route("/api/clients", get(api::list_clients).post(api::register_client))
         .route("/api/clients/:id", get(api::get_client))
+        .route("/api/clients/:id/config", put(api::update_client_config))
         .route("/api/clients/:id/deploy", post(api::deploy_to_client))
         .route("/api/versions", get(api::list_versions).post(api::upload_version))
         .route("/api/versions/:version", get(api::get_version))

@@ -1,0 +1,345 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+
+const API_URL = import.meta.env.PUBLIC_API_URL || 'https://api.coreon.build';
+---
+
+<Layout title="Schedules">
+  <div class="space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold">업데이트 스케줄</h1>
+        <p class="text-text-muted mt-1">예약된 업데이트를 관리합니다</p>
+      </div>
+      <button
+        id="createScheduleBtn"
+        class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors"
+      >
+        <Icon name="lucide:calendar-plus" class="w-5 h-5" />
+        <span>스케줄 생성</span>
+      </button>
+    </div>
+
+    <!-- Create Schedule Modal -->
+    <div id="scheduleModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-bg-card rounded-xl border border-border w-full max-w-lg mx-4">
+        <div class="p-6 border-b border-border flex items-center justify-between">
+          <h2 class="text-xl font-semibold">업데이트 스케줄 생성</h2>
+          <button id="closeScheduleModal" class="text-text-muted hover:text-text">
+            <Icon name="lucide:x" class="w-5 h-5" />
+          </button>
+        </div>
+        <form id="scheduleForm" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">스케줄 이름</label>
+            <input
+              type="text"
+              name="name"
+              placeholder="주간 업데이트"
+              required
+              class="w-full px-4 py-2 bg-bg rounded-lg border border-border focus:border-primary focus:outline-none"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">대상 버전</label>
+            <select
+              name="version"
+              id="scheduleVersion"
+              required
+              class="w-full px-4 py-2 bg-bg rounded-lg border border-border focus:border-primary focus:outline-none"
+            >
+              <option value="">버전 선택...</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">대상 클라이언트</label>
+            <div id="clientCheckboxes" class="space-y-2 max-h-40 overflow-y-auto p-3 bg-bg rounded-lg border border-border">
+              <p class="text-text-muted text-sm">로딩 중...</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">시작 일시</label>
+              <input
+                type="datetime-local"
+                name="scheduled_at"
+                required
+                class="w-full px-4 py-2 bg-bg rounded-lg border border-border focus:border-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">롤아웃 방식</label>
+              <select
+                name="rollout_type"
+                class="w-full px-4 py-2 bg-bg rounded-lg border border-border focus:border-primary focus:outline-none"
+              >
+                <option value="immediate">즉시 전체</option>
+                <option value="gradual">점진적 (10%씩)</option>
+                <option value="canary">카나리 (1대 먼저)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="flex gap-3 pt-4">
+            <button
+              type="button"
+              id="cancelSchedule"
+              class="flex-1 px-4 py-2 bg-bg-hover hover:bg-border rounded-lg transition-colors"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              class="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Icon name="lucide:check" class="w-4 h-4" />
+              <span>생성</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Schedules List -->
+    <div class="space-y-4" id="scheduleList">
+      <div class="text-center text-text-muted py-8">로딩 중...</div>
+    </div>
+
+    <!-- Empty State Info -->
+    <div id="emptyInfo" class="hidden bg-bg-card rounded-xl border border-border p-8 text-center">
+      <Icon name="lucide:calendar-clock" class="w-16 h-16 mx-auto text-text-muted mb-4" />
+      <h3 class="text-xl font-semibold mb-2">스케줄이 없습니다</h3>
+      <p class="text-text-muted mb-6">업데이트 스케줄을 생성하여 자동으로 배포하세요</p>
+      <button
+        id="createFirstSchedule"
+        class="px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors inline-flex items-center gap-2"
+      >
+        <Icon name="lucide:plus" class="w-4 h-4" />
+        <span>첫 스케줄 생성</span>
+      </button>
+    </div>
+  </div>
+</Layout>
+
+<script define:vars={{ API_URL }}>
+  const scheduleModal = document.getElementById('scheduleModal');
+  const scheduleForm = document.getElementById('scheduleForm');
+  
+  // Modal controls
+  document.getElementById('createScheduleBtn').addEventListener('click', openScheduleModal);
+  document.getElementById('createFirstSchedule')?.addEventListener('click', openScheduleModal);
+  document.getElementById('closeScheduleModal').addEventListener('click', () => scheduleModal.classList.add('hidden'));
+  document.getElementById('cancelSchedule').addEventListener('click', () => scheduleModal.classList.add('hidden'));
+  
+  async function openScheduleModal() {
+    // Load versions
+    try {
+      const res = await fetch(`${API_URL}/api/versions`);
+      const versions = res.ok ? await res.json() : [];
+      document.getElementById('scheduleVersion').innerHTML = 
+        '<option value="">버전 선택...</option>' +
+        versions.map(v => `<option value="${v.version}">v${v.version}</option>`).join('');
+    } catch (e) {
+      console.error(e);
+    }
+    
+    // Load clients
+    try {
+      const res = await fetch(`${API_URL}/api/clients`);
+      const clients = res.ok ? await res.json() : [];
+      const container = document.getElementById('clientCheckboxes');
+      
+      if (clients.length === 0) {
+        container.innerHTML = '<p class="text-text-muted text-sm">등록된 클라이언트가 없습니다</p>';
+      } else {
+        container.innerHTML = `
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="selectAll" class="rounded border-border" />
+            <span class="text-sm font-medium">전체 선택</span>
+          </label>
+          <hr class="border-border my-2" />
+          ${clients.map(c => `
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="clients" value="${c.id}" class="client-checkbox rounded border-border" />
+              <span class="text-sm">${c.name}</span>
+              <span class="text-xs text-text-muted ml-auto">${c.current_version ? 'v' + c.current_version : '미설치'}</span>
+            </label>
+          `).join('')}
+        `;
+        
+        // Select all functionality
+        document.getElementById('selectAll')?.addEventListener('change', (e) => {
+          document.querySelectorAll('.client-checkbox').forEach(cb => cb.checked = e.target.checked);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    
+    // Set default datetime to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(2, 0, 0, 0);
+    document.querySelector('input[name="scheduled_at"]').value = 
+      tomorrow.toISOString().slice(0, 16);
+    
+    scheduleModal.classList.remove('hidden');
+  }
+  
+  // Create schedule
+  scheduleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(scheduleForm);
+    const clientIds = formData.getAll('clients');
+    
+    if (clientIds.length === 0) {
+      alert('최소 1개 이상의 클라이언트를 선택하세요');
+      return;
+    }
+    
+    const schedule = {
+      name: formData.get('name'),
+      version: formData.get('version'),
+      client_ids: clientIds,
+      scheduled_at: new Date(formData.get('scheduled_at')).toISOString(),
+      rollout_type: formData.get('rollout_type'),
+    };
+    
+    // Note: API endpoint for schedules needs to be implemented in dm-server
+    // For now, save to localStorage as demo
+    const schedules = JSON.parse(localStorage.getItem('dm_schedules') || '[]');
+    schedules.push({
+      id: Date.now().toString(),
+      ...schedule,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    });
+    localStorage.setItem('dm_schedules', JSON.stringify(schedules));
+    
+    scheduleModal.classList.add('hidden');
+    scheduleForm.reset();
+    loadSchedules();
+  });
+  
+  // Load schedules
+  function loadSchedules() {
+    const container = document.getElementById('scheduleList');
+    const emptyInfo = document.getElementById('emptyInfo');
+    
+    // Load from localStorage (demo) - replace with API call when ready
+    const schedules = JSON.parse(localStorage.getItem('dm_schedules') || '[]');
+    
+    if (schedules.length === 0) {
+      container.innerHTML = '';
+      emptyInfo.classList.remove('hidden');
+      return;
+    }
+    
+    emptyInfo.classList.add('hidden');
+    
+    container.innerHTML = schedules.sort((a, b) => 
+      new Date(a.scheduled_at) - new Date(b.scheduled_at)
+    ).map(schedule => {
+      const scheduledDate = new Date(schedule.scheduled_at);
+      const isPast = scheduledDate < new Date();
+      const statusColor = schedule.status === 'completed' ? 'success' 
+        : schedule.status === 'failed' ? 'danger'
+        : isPast ? 'warning' : 'primary';
+      
+      return `
+        <div class="bg-bg-card rounded-xl border border-border p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="font-semibold text-lg">${schedule.name}</h3>
+              <p class="text-text-muted text-sm">v${schedule.version} → ${schedule.client_ids.length}개 클라이언트</p>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full bg-${statusColor}/10 text-${statusColor}">
+              ${schedule.status === 'completed' ? '완료' 
+                : schedule.status === 'failed' ? '실패'
+                : isPast ? '진행 중' : '대기'}
+            </span>
+          </div>
+          
+          <div class="flex items-center gap-6 text-sm text-text-muted">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>${scheduledDate.toLocaleString('ko-KR')}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>${schedule.rollout_type === 'immediate' ? '즉시 전체' 
+                : schedule.rollout_type === 'gradual' ? '점진적' : '카나리'}</span>
+            </div>
+          </div>
+          
+          <div class="mt-4 pt-4 border-t border-border flex gap-2">
+            ${schedule.status === 'pending' ? `
+              <button
+                onclick="runSchedule('${schedule.id}')"
+                class="px-3 py-2 bg-success/10 hover:bg-success/20 text-success rounded-lg text-sm transition-colors"
+              >
+                지금 실행
+              </button>
+            ` : ''}
+            <button
+              onclick="deleteSchedule('${schedule.id}')"
+              class="px-3 py-2 bg-danger/10 hover:bg-danger/20 text-danger rounded-lg text-sm transition-colors"
+            >
+              삭제
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  window.deleteSchedule = function(id) {
+    if (!confirm('스케줄을 삭제하시겠습니까?')) return;
+    
+    const schedules = JSON.parse(localStorage.getItem('dm_schedules') || '[]');
+    const filtered = schedules.filter(s => s.id !== id);
+    localStorage.setItem('dm_schedules', JSON.stringify(filtered));
+    loadSchedules();
+  };
+  
+  window.runSchedule = async function(id) {
+    if (!confirm('지금 바로 업데이트를 실행하시겠습니까?')) return;
+    
+    const schedules = JSON.parse(localStorage.getItem('dm_schedules') || '[]');
+    const schedule = schedules.find(s => s.id === id);
+    
+    if (!schedule) return;
+    
+    // Deploy to each client
+    for (const clientId of schedule.client_ids) {
+      try {
+        await fetch(`${API_URL}/api/clients/${clientId}/deploy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: clientId, version: schedule.version }),
+        });
+      } catch (e) {
+        console.error(`Failed to deploy to ${clientId}:`, e);
+      }
+    }
+    
+    // Update status
+    schedule.status = 'completed';
+    localStorage.setItem('dm_schedules', JSON.stringify(schedules));
+    loadSchedules();
+    
+    alert('배포가 시작되었습니다');
+  };
+  
+  loadSchedules();
+</script>

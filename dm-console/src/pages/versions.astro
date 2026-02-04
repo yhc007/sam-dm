@@ -1,0 +1,281 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+
+const API_URL = import.meta.env.PUBLIC_API_URL || 'https://api.coreon.build';
+---
+
+<Layout title="Versions">
+  <div class="space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold">버전 관리</h1>
+        <p class="text-text-muted mt-1">배포할 버전을 업로드하고 관리합니다</p>
+      </div>
+      <button
+        id="uploadBtn"
+        class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors"
+      >
+        <Icon name="lucide:upload" class="w-5 h-5" />
+        <span>버전 업로드</span>
+      </button>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-bg-card rounded-xl border border-border w-full max-w-md mx-4">
+        <div class="p-6 border-b border-border flex items-center justify-between">
+          <h2 class="text-xl font-semibold">새 버전 업로드</h2>
+          <button id="closeModal" class="text-text-muted hover:text-text">
+            <Icon name="lucide:x" class="w-5 h-5" />
+          </button>
+        </div>
+        <form id="uploadForm" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">버전 번호</label>
+            <input
+              type="text"
+              name="version"
+              placeholder="1.0.0"
+              required
+              pattern="^\d+\.\d+\.\d+$"
+              class="w-full px-4 py-2 bg-bg rounded-lg border border-border focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">릴리즈 노트</label>
+            <textarea
+              name="release_notes"
+              rows="3"
+              placeholder="변경 사항을 입력하세요..."
+              class="w-full px-4 py-2 bg-bg rounded-lg border border-border focus:border-primary focus:outline-none resize-none"
+            ></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">아티팩트 파일</label>
+            <div
+              id="dropZone"
+              class="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
+            >
+              <Icon name="lucide:file-archive" class="w-12 h-12 mx-auto text-text-muted mb-4" />
+              <p class="text-text-muted">파일을 드래그하거나 클릭하여 선택</p>
+              <p class="text-xs text-text-muted mt-1">.tar.gz, .zip, .deb, .rpm</p>
+              <input
+                type="file"
+                name="artifact"
+                id="fileInput"
+                accept=".tar.gz,.tgz,.zip,.deb,.rpm"
+                required
+                class="hidden"
+              />
+            </div>
+            <p id="fileName" class="mt-2 text-sm text-text-muted hidden"></p>
+          </div>
+          <div class="flex gap-3 pt-4">
+            <button
+              type="button"
+              id="cancelBtn"
+              class="flex-1 px-4 py-2 bg-bg-hover hover:bg-border rounded-lg transition-colors"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              class="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Icon name="lucide:upload" class="w-4 h-4" />
+              <span>업로드</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Version List -->
+    <div class="bg-bg-card rounded-xl border border-border">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-border">
+              <th class="px-6 py-4 text-left text-sm font-medium text-text-muted">버전</th>
+              <th class="px-6 py-4 text-left text-sm font-medium text-text-muted">릴리즈 노트</th>
+              <th class="px-6 py-4 text-left text-sm font-medium text-text-muted">파일 크기</th>
+              <th class="px-6 py-4 text-left text-sm font-medium text-text-muted">등록일</th>
+              <th class="px-6 py-4 text-left text-sm font-medium text-text-muted">액션</th>
+            </tr>
+          </thead>
+          <tbody id="versionTable">
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-text-muted">로딩 중...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script define:vars={{ API_URL }}>
+  const uploadBtn = document.getElementById('uploadBtn');
+  const uploadModal = document.getElementById('uploadModal');
+  const closeModal = document.getElementById('closeModal');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const uploadForm = document.getElementById('uploadForm');
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileName = document.getElementById('fileName');
+  
+  // Modal controls
+  uploadBtn.addEventListener('click', () => uploadModal.classList.remove('hidden'));
+  closeModal.addEventListener('click', () => uploadModal.classList.add('hidden'));
+  cancelBtn.addEventListener('click', () => uploadModal.classList.add('hidden'));
+  uploadModal.addEventListener('click', (e) => {
+    if (e.target === uploadModal) uploadModal.classList.add('hidden');
+  });
+  
+  // File drop zone
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-primary');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-primary');
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-primary');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      showFileName(e.dataTransfer.files[0]);
+    }
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      showFileName(fileInput.files[0]);
+    }
+  });
+  
+  function showFileName(file) {
+    fileName.textContent = `선택됨: ${file.name} (${formatSize(file.size)})`;
+    fileName.classList.remove('hidden');
+  }
+  
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+  
+  // Upload form
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(uploadForm);
+    
+    try {
+      const res = await fetch(`${API_URL}/api/versions`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        uploadModal.classList.add('hidden');
+        uploadForm.reset();
+        fileName.classList.add('hidden');
+        fetchVersions();
+      } else {
+        const error = await res.text();
+        alert('업로드 실패: ' + error);
+      }
+    } catch (error) {
+      alert('서버 연결 실패');
+    }
+  });
+  
+  // Fetch versions
+  async function fetchVersions() {
+    const table = document.getElementById('versionTable');
+    
+    try {
+      const res = await fetch(`${API_URL}/api/versions`);
+      const versions = res.ok ? await res.json() : [];
+      
+      if (versions.length === 0) {
+        table.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-text-muted">
+              등록된 버전이 없습니다
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      table.innerHTML = versions.map(v => `
+        <tr class="border-b border-border hover:bg-bg-hover">
+          <td class="px-6 py-4">
+            <span class="font-mono font-medium">v${v.version}</span>
+          </td>
+          <td class="px-6 py-4 text-text-muted max-w-xs truncate">
+            ${v.release_notes || '-'}
+          </td>
+          <td class="px-6 py-4 text-text-muted">
+            ${v.file_size ? formatSize(v.file_size) : '-'}
+          </td>
+          <td class="px-6 py-4 text-text-muted">
+            ${new Date(v.created_at).toLocaleDateString('ko-KR')}
+          </td>
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-2">
+              <a
+                href="${API_URL}/api/artifacts/${v.version}"
+                class="p-2 hover:bg-bg rounded-lg text-text-muted hover:text-text transition-colors"
+                title="다운로드"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </a>
+              <button
+                onclick="deleteVersion('${v.version}')"
+                class="p-2 hover:bg-danger/10 rounded-lg text-text-muted hover:text-danger transition-colors"
+                title="삭제"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-6 py-8 text-center text-danger">서버 연결 실패</td>
+        </tr>
+      `;
+    }
+  }
+  
+  window.deleteVersion = async function(version) {
+    if (!confirm(`v${version}을(를) 삭제하시겠습니까?`)) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/versions/${version}`, {
+        method: 'DELETE',
+      });
+      
+      if (res.ok) {
+        fetchVersions();
+      } else {
+        alert('삭제 실패');
+      }
+    } catch (error) {
+      alert('서버 연결 실패');
+    }
+  };
+  
+  fetchVersions();
+</script>

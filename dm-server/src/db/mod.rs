@@ -17,22 +17,45 @@ pub async fn create_pool(database_url: &str) -> Result<PgPool> {
 }
 
 /// 클라이언트 등록
-pub async fn register_client(pool: &PgPool, name: &str, api_key: &str) -> Result<Client> {
+pub async fn register_client(pool: &PgPool, name: &str, api_key: &str, config: Option<&ClientConfig>) -> Result<Client> {
+    let config_json = config.map(|c| serde_json::to_value(c).unwrap_or_default()).unwrap_or(serde_json::json!({}));
+    
     let client = sqlx::query_as::<_, Client>(
         r#"
-        INSERT INTO clients (id, name, api_key, status, created_at, updated_at)
-        VALUES ($1, $2, $3, 'offline', $4, $4)
+        INSERT INTO clients (id, name, api_key, status, config, created_at, updated_at)
+        VALUES ($1, $2, $3, 'offline', $4, $5, $5)
         RETURNING *
         "#,
     )
     .bind(Uuid::new_v4())
     .bind(name)
     .bind(api_key)
+    .bind(config_json)
     .bind(Utc::now())
     .fetch_one(pool)
     .await?;
 
     Ok(client)
+}
+
+/// 클라이언트 설정 업데이트
+pub async fn update_client_config(pool: &PgPool, client_id: Uuid, config: &ClientConfig) -> Result<()> {
+    let config_json = serde_json::to_value(config)?;
+    
+    sqlx::query(
+        r#"
+        UPDATE clients
+        SET config = $2, updated_at = $3
+        WHERE id = $1
+        "#,
+    )
+    .bind(client_id)
+    .bind(config_json)
+    .bind(Utc::now())
+    .execute(pool)
+    .await?;
+
+    Ok(())
 }
 
 /// API Key로 클라이언트 조회
