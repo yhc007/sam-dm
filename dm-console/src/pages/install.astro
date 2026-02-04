@@ -1,0 +1,182 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Install Client">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+      <h1 class="text-4xl font-bold">🦊 Sam DM Client</h1>
+      <p class="text-text-muted mt-2">원격 업데이트 클라이언트 설치 가이드</p>
+    </div>
+
+    <!-- Download Section -->
+    <div class="bg-bg-card rounded-xl border border-border p-8">
+      <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+        <Icon name="lucide:download" class="w-6 h-6" />
+        다운로드
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="https://github.com/yhc007/sam-dm/releases/latest/download/dm-client-linux-x86_64.tar.gz"
+           class="flex items-center justify-between p-4 bg-bg rounded-lg border border-border hover:border-primary transition-colors">
+          <div class="flex items-center gap-3">
+            <Icon name="lucide:monitor" class="w-8 h-8 text-primary" />
+            <div>
+              <p class="font-semibold">Linux x86_64</p>
+              <p class="text-sm text-text-muted">Ubuntu, Debian, CentOS...</p>
+            </div>
+          </div>
+          <Icon name="lucide:download" class="w-5 h-5" />
+        </a>
+        
+        <a href="https://github.com/yhc007/sam-dm/releases/latest/download/dm-client-linux-arm64.tar.gz"
+           class="flex items-center justify-between p-4 bg-bg rounded-lg border border-border hover:border-primary transition-colors">
+          <div class="flex items-center gap-3">
+            <Icon name="lucide:cpu" class="w-8 h-8 text-success" />
+            <div>
+              <p class="font-semibold">Linux ARM64</p>
+              <p class="text-sm text-text-muted">Raspberry Pi, AWS Graviton...</p>
+            </div>
+          </div>
+          <Icon name="lucide:download" class="w-5 h-5" />
+        </a>
+        
+        <a href="https://github.com/yhc007/sam-dm/releases/latest/download/dm-client-macos-arm64.tar.gz"
+           class="flex items-center justify-between p-4 bg-bg rounded-lg border border-border hover:border-primary transition-colors">
+          <div class="flex items-center gap-3">
+            <Icon name="lucide:apple" class="w-8 h-8 text-secondary" />
+            <div>
+              <p class="font-semibold">macOS Apple Silicon</p>
+              <p class="text-sm text-text-muted">M1, M2, M3...</p>
+            </div>
+          </div>
+          <Icon name="lucide:download" class="w-5 h-5" />
+        </a>
+        
+        <a href="https://github.com/yhc007/sam-dm/releases/latest/download/dm-client-macos-x86_64.tar.gz"
+           class="flex items-center justify-between p-4 bg-bg rounded-lg border border-border hover:border-primary transition-colors">
+          <div class="flex items-center gap-3">
+            <Icon name="lucide:laptop" class="w-8 h-8 text-warning" />
+            <div>
+              <p class="font-semibold">macOS Intel</p>
+              <p class="text-sm text-text-muted">Intel Mac</p>
+            </div>
+          </div>
+          <Icon name="lucide:download" class="w-5 h-5" />
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Install -->
+    <div class="bg-bg-card rounded-xl border border-border p-8">
+      <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+        <Icon name="lucide:terminal" class="w-6 h-6" />
+        빠른 설치 (Linux)
+      </h2>
+      
+      <div class="bg-bg rounded-lg p-4 font-mono text-sm overflow-x-auto">
+        <pre class="text-green-400"># 1. 다운로드 & 설치</pre>
+        <pre>curl -sSL https://github.com/yhc007/sam-dm/releases/latest/download/dm-client-linux-x86_64.tar.gz | tar -xz</pre>
+        <pre>sudo mv dm-client-linux-x86_64 /usr/local/bin/dm-client</pre>
+        <pre>sudo chmod +x /usr/local/bin/dm-client</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 2. 설정 파일 생성</pre>
+        <pre>sudo mkdir -p /etc/sam-dm</pre>
+        <pre>sudo nano /etc/sam-dm/config.env</pre>
+      </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="bg-bg-card rounded-xl border border-border p-8">
+      <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+        <Icon name="lucide:settings" class="w-6 h-6" />
+        설정
+      </h2>
+      
+      <p class="text-text-muted mb-4">
+        <code class="bg-bg px-2 py-1 rounded">/etc/sam-dm/config.env</code> 파일을 생성하세요:
+      </p>
+      
+      <div class="bg-bg rounded-lg p-4 font-mono text-sm overflow-x-auto">
+        <pre class="text-yellow-400"># Sam DM Client Configuration</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 서버 URL (필수)</pre>
+        <pre>DM_SERVER_URL=https://api.coreon.build</pre>
+        <pre></pre>
+        <pre class="text-green-400"># API Key (콘솔에서 클라이언트 등록 후 발급)</pre>
+        <pre>DM_API_KEY=your-api-key-here</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 서비스 디렉토리 (업데이트 파일이 설치될 경로)</pre>
+        <pre>DM_SERVICE_DIR=/var/www/my-app</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 업데이트 후 실행할 명령어</pre>
+        <pre>DM_RESTART_COMMAND=systemctl restart my-app</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 폴링 간격 (초)</pre>
+        <pre>DM_POLL_INTERVAL=60</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 백업 디렉토리</pre>
+        <pre>DM_BACKUP_DIR=/var/backups/sam-dm</pre>
+      </div>
+      
+      <div class="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+        <p class="text-sm">
+          <strong>💡 Tip:</strong> API Key는 
+          <a href="/clients" class="text-primary hover:underline">클라이언트 관리</a> 
+          페이지에서 클라이언트 등록 시 발급됩니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- Systemd Service -->
+    <div class="bg-bg-card rounded-xl border border-border p-8">
+      <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+        <Icon name="lucide:play" class="w-6 h-6" />
+        서비스 등록 (systemd)
+      </h2>
+      
+      <p class="text-text-muted mb-4">
+        <code class="bg-bg px-2 py-1 rounded">/etc/systemd/system/sam-dm-client.service</code>:
+      </p>
+      
+      <div class="bg-bg rounded-lg p-4 font-mono text-sm overflow-x-auto">
+        <pre>[Unit]</pre>
+        <pre>Description=Sam DM Client</pre>
+        <pre>After=network.target</pre>
+        <pre></pre>
+        <pre>[Service]</pre>
+        <pre>Type=simple</pre>
+        <pre>EnvironmentFile=/etc/sam-dm/config.env</pre>
+        <pre>ExecStart=/usr/local/bin/dm-client</pre>
+        <pre>Restart=always</pre>
+        <pre>RestartSec=10</pre>
+        <pre></pre>
+        <pre>[Install]</pre>
+        <pre>WantedBy=multi-user.target</pre>
+      </div>
+      
+      <div class="mt-4 bg-bg rounded-lg p-4 font-mono text-sm">
+        <pre class="text-green-400"># 서비스 시작</pre>
+        <pre>sudo systemctl daemon-reload</pre>
+        <pre>sudo systemctl enable sam-dm-client</pre>
+        <pre>sudo systemctl start sam-dm-client</pre>
+        <pre></pre>
+        <pre class="text-green-400"># 상태 확인</pre>
+        <pre>sudo systemctl status sam-dm-client</pre>
+        <pre>sudo journalctl -u sam-dm-client -f</pre>
+      </div>
+    </div>
+
+    <!-- Help -->
+    <div class="text-center text-text-muted">
+      <p>문제가 있나요? 
+        <a href="https://github.com/yhc007/sam-dm/issues" class="text-primary hover:underline">
+          GitHub Issues
+        </a>
+        에서 도움을 받으세요.
+      </p>
+    </div>
+  </div>
+</Layout>
