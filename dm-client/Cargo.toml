@@ -7,7 +7,7 @@ authors = ["Paul Yu <yhc007>"]
 
 [dependencies]
 # HTTP client
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full", "process"] }
