@@ -42,4 +42,23 @@ impl Config {
             health_check_command: env::var("DM_HEALTH_CHECK_COMMAND").ok(),
         })
     }
+
+    /// Apply/Status 등 서버 접속 없이 동작하는 명령용
+    pub fn from_env_optional() -> Self {
+        Self {
+            server_url: env::var("DM_SERVER_URL").unwrap_or_default(),
+            api_key: env::var("DM_API_KEY").unwrap_or_default(),
+            poll_interval_secs: env::var("DM_POLL_INTERVAL")
+                .unwrap_or_else(|_| "30".to_string())
+                .parse()
+                .unwrap_or(30),
+            service_dir: env::var("DM_SERVICE_DIR")
+                .unwrap_or_else(|_| "./service".to_string()),
+            backup_dir: env::var("DM_BACKUP_DIR")
+                .unwrap_or_else(|_| "./backups".to_string()),
+            restart_command: env::var("DM_RESTART_COMMAND")
+                .unwrap_or_else(|_| "pm2 restart all".to_string()),
+            health_check_command: env::var("DM_HEALTH_CHECK_COMMAND").ok(),
+        }
+    }
 }
